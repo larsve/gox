@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 
 	version "github.com/hashicorp/go-version"
@@ -98,7 +100,28 @@ var (
 	Platforms_1_10 = Platforms_1_9
 
 	PlatformsLatest = Platforms_1_10
+	GoPlatforms     []Platform
 )
+
+func InitGoPlatforms() {
+	// Try to run "go tool dist list" to get supported plattforms
+	output, err := execGo("go", nil, "", "tool", "dist", "list")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to query go-binary for supported platforms, error:%v", err)
+		return
+	}
+
+	scanner := bufio.NewScanner(strings.NewReader(output))
+	for scanner.Scan() {
+		tuple := scanner.Text()
+		parts := strings.Split(tuple, "/")
+		if len(parts) != 2 {
+			fmt.Fprintf(os.Stderr, "%s not a OS/arch tuple", tuple)
+			continue
+		}
+		GoPlatforms = append(GoPlatforms, Platform{OS: parts[0], Arch: parts[1]})
+	}
+}
 
 // SupportedPlatforms returns the full list of supported platforms for
 // the version of Go that is
@@ -142,6 +165,11 @@ func SupportedPlatforms(v string) []Platform {
 		if constraints.Check(current) {
 			return p.plat
 		}
+	}
+
+	// If "go tool dist list" returned any platforms, use those
+	if len(GoPlatforms) > 0 {
+		return GoPlatforms
 	}
 
 	// Assume latest

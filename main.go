@@ -54,6 +54,9 @@ func realMain() int {
 		return 1
 	}
 
+	// Query go-binary for supported platforms
+	InitGoPlatforms()
+
 	// Determine what amount of parallelism we want Default to the current
 	// number of CPUs-1 is <= 0 is specified.
 	if parallel <= 0 {
@@ -196,7 +199,7 @@ func realMain() int {
 }
 
 func printUsage() {
-	fmt.Fprintf(os.Stderr, helpText)
+	fmt.Fprint(os.Stderr, helpText)
 }
 
 const helpText = `Usage: gox [options] [packages]
